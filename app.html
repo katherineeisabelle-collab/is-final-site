@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Web App | Tennis Vocab Flashcards</title>
+  <style>
+    body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#0f172a; color:#e5e7eb; }
+    .topbar { padding:14px 18px; background:#111827; display:flex; justify-content:space-between; align-items:center; }
+    .topbar a { color:#e5e7eb; text-decoration:none; margin-left:12px; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 18px; }
+    .card { background:#111827; border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:16px; }
+    .grid { display:grid; grid-template-columns: 1fr; gap: 14px; }
+    .flash { cursor:pointer; user-select:none; padding: 22px; border-radius:16px; background:#0b1220; border:1px solid rgba(255,255,255,0.10); min-height:160px; display:flex; align-items:center; justify-content:center; text-align:center; }
+    .term { font-size: 1.7rem; font-weight: 700; }
+    .def { font-size: 1.1rem; color:#cbd5e1; }
+    .row { display:flex; flex-wrap:wrap; gap:10px; }
+    button { cursor:pointer; border:0; border-radius:12px; padding:10px 12px; background:#e5e7eb; color:#0b1220; font-weight:700; }
+    button.secondary { background: transparent; color:#e5e7eb; border:1px solid rgba(255,255,255,0.18); }
+    .meta { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; color:#94a3b8; font-size:0.95rem; }
+    input { width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:#0b1220; color:#e5e7eb; }
+    .pill { display:inline-block; padding:6px 10px; border-radius:999px; background:#0b1220; border:1px solid rgba(255,255,255,0.12); }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div><strong>AI Web App:</strong> Tennis Vocab Flashcards</div>
+    <div>
+      <a href="index.html">Home</a>
+      <a href="resume.html">Résumé</a>
+      <a href="scratch.html">Scratch</a>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card grid">
+      <div class="meta">
+        <div class="pill">Click the card to flip</div>
+        <div id="counter" class="pill">Card 1 of 1</div>
+      </div>
+
+      <div id="flashcard" class="flash" role="button" aria-label="Flashcard (click to flip)">
+        <div>
+          <div id="front" class="term">Loading…</div>
+          <div id="back" class="def" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="row">
+        <button id="prev">← Prev</button>
+        <button id="flip" class="secondary">Flip</button>
+        <button id="next">Next →</button>
+        <button id="shuffle" class="secondary">Shuffle</button>
+        <button id="know" class="secondary">Mark Known ✓</button>
+      </div>
+
+      <div>
+        <label for="search" class="meta" style="margin-bottom:6px;">Search terms</label>
+        <input id="search" placeholder="Type to filter (e.g., serve, volley, deuce)" />
+      </div>
+
+      <div class="meta">
+        <div>Known: <span id="knownCount">0</span></div>
+        <div>Filtered: <span id="filteredCount">0</span></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Tennis vocab flashcards (you can add/edit terms anytime)
+  const allCards = [
+    { term: "Ace", def: "A serve that the opponent cannot touch; a clean point on the serve." },
+    { term: "Deuce", def: "A tied score at 40–40; you must win two straight points to win the game." },
+    { term: "Ad In / Ad Out", def: "Advantage to the server (in) or receiver (out) after deuce." },
+    { term: "Break Point", def: "A point where the receiver can win the game on the opponent’s serve." },
+    { term: "Volley", def: "Hitting the ball before it bounces, usually near the net." },
+    { term: "Forehand", def: "Stroke hit with the palm facing forward on your dominant side." },
+    { term: "Backhand", def: "Stroke hit on the non-dominant side; can be one-handed or two-handed." },
+    { term: "Rally", def: "A sequence of shots exchanged between players before the point ends." },
+    { term: "Lob", def: "A high shot hit over an opponent, often when they’re at the net." },
+    { term: "Drop Shot", def: "A soft shot that barely clears the net and lands short." },
+    { term: "Fault", def: "An invalid serve. Two faults in a row = double fault = you lose the point." },
+    { term: "Double Fault", def: "Missing both the first and second serves; you lose the point." }
+  ];
+
+  let known = new Set();
+  let filtered = [...allCards];
+  let i = 0;
+  let showBack = false;
+
+  const frontEl = document.getElementById("front");
+  const backEl = document.getElementById("back");
+  const counterEl = document.getElementById("counter");
+  const knownCountEl = document.getElementById("knownCount");
+  const filteredCountEl = document.getElementById("filteredCount");
+  const flashcardEl = document.getElementById("flashcard");
+
+  function render() {
+    if (filtered.length === 0) {
+      frontEl.textContent = "No matches";
+      backEl.textContent = "Try a different search.";
+      backEl.style.display = "none";
+      counterEl.textContent = "0 cards";
+      filteredCountEl.textContent = "0";
+      knownCountEl.textContent = known.size;
+      return;
+    }
+
+    if (i < 0) i = filtered.length - 1;
+    if (i >= filtered.length) i = 0;
+
+    const card = filtered[i];
+    counterEl.textContent = `Card ${i + 1} of ${filtered.length}`;
+    filteredCountEl.textContent = filtered.length;
+    knownCountEl.textContent = known.size;
+
+    frontEl.textContent = card.term;
+    backEl.textContent = card.def;
+
+    if (showBack) {
+      backEl.style.display = "block";
+      frontEl.style.display = "none";
+    } else {
+      backEl.style.display = "none";
+      frontEl.style.display = "block";
+    }
+
+    // subtle status indicator: dim known terms
+    flashcardEl.style.opacity = known.has(card.term) ? "0.65" : "1";
+  }
+
+  function flip() {
+    showBack = !showBack;
+    render();
+  }
+
+  function next() { showBack = false; i++; render(); }
+  function prev() { showBack = false; i--; render(); }
+
+  function shuffle() {
+    showBack = false;
+    for (let j = filtered.length - 1; j > 0; j--) {
+      const k = Math.floor(Math.random() * (j + 1));
+      [filtered[j], filtered[k]] = [filtered[k], filtered[j]];
+    }
+    i = 0;
+    render();
+  }
+
+  function markKnown() {
+    if (filtered.length === 0) return;
+    const term = filtered[i].term;
+    if (known.has(term)) known.delete(term);
+    else known.add(term);
+    render();
+  }
+
+  document.getElementById("flip").addEventListener("click", flip);
+  document.getElementById("next").addEventListener("click", next);
+  document.getElementById("prev").addEventListener("click", prev);
+  document.getElementById("shuffle").addEventListener("click", shuffle);
+  document.getElementById("know").addEventListener("click", markKnown);
+  flashcardEl.addEventListener("click", flip);
+
+  document.getElementById("search").addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    filtered = allCards.filter(c =>
+      c.term.toLowerCase().includes(q) || c.def.toLowerCase().includes(q)
+    );
+    i = 0;
+    showBack = false;
+    render();
+  });
+
+  render();
+</script>
+</body>
+</html>
